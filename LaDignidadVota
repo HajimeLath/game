@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Dignidad Vota — Simulador Diplomático</title>
+<!-- LIBRERÍA PARA GENERAR LA IMAGEN PNG -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#071a2f; --panel:#0e2b4a; --panel2:#13375c; --linea:#1f4e79;
+    --texto:#e6f0f8; --suave:#8fb3cc; --verde:#39c07a; --amarillo:#e8b23a;
+    --rojo:#e05252; --azul:#4cc9f0;
+  }
+  body{
+    font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(circle at 50% -10%, #123a5f 0%, #071a2f 55%) fixed;
+    color:var(--texto); min-height:100vh; padding:18px 14px 70px;
+  }
+  #app{max-width:920px;margin:0 auto}
+
+  /* ---------- CABECERA ---------- */
+  header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+  
+  /* ICONO: CÍRCULO ROJO CON ESTRELLA BLANCA */
+  .bandera{
+    width: 48px; height: 48px; flex:none;
+    background-color: #CF142B; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.2);
+  }
+  .bandera::before {
+    content: "★"; color: #FFFFFF; font-size: 28px; line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  
+  h1{font-size:1.35rem;letter-spacing:2px;font-weight:800}
+  .sub{font-size:.8rem;color:var(--suave);margin-top:2px}
+  .btn-tutorial{
+    margin-left:auto; font-size:0.8rem; padding:8px 14px; border-radius:20px;
+    background:transparent; border:1px solid var(--azul); color:var(--azul);
+    cursor:pointer; transition:0.2s; font-weight:600;
+  }
+  .btn-tutorial:hover{background:rgba(76,201,240,0.1)}
+
+  /* ---------- PANTALLAS ---------- */
+  .pantalla{display:none}
+  .pantalla.activa{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--linea);border-radius:14px;
+    padding:18px 20px;margin-bottom:14px;
+  }
+  .panel h2{font-size:1.05rem;margin-bottom:12px;color:var(--azul);letter-spacing:1px}
+  .panel p{font-size:.9rem;line-height:1.55;color:#c9dceb;margin-bottom:10px}
+  .panel strong{color:#fff}
+  .reglas{list-style:none;margin:12px 0 18px}
+  .reglas li{font-size:.87rem;color:#c9dceb;padding:7px 0;border-bottom:1px dashed rgba(143,179,204,.2)}
+  .reglas li:last-child{border-bottom:none}
+
+  /* ---------- BOTONES ---------- */
+  .btn{
+    font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
+    border-radius:9px;border:1px solid var(--linea);background:var(--panel2);
+    color:var(--texto);padding:11px 18px;transition:.15s;
+  }
+  .btn:hover:not(:disabled){border-color:var(--azul);background:#17456f}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.primario{
+    background:linear-gradient(135deg,#1c6ea4,#2b8a5f);border-color:#2b8a5f;
+    width:100%;padding:14px;font-size:.95rem;letter-spacing:.5px;
+  }
+  .btn.primario:hover{filter:brightness(1.15)}
+  .btn.descarga {
+    background:linear-gradient(135deg, #4cc9f0, #1c6ea4);
+    border-color: #4cc9f0; color: #fff; margin-top: 10px;
+  }
+
+  /* ---------- HUD ---------- */
+  .hud{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .hud-item{
+    flex:1;min-width:110px;background:var(--panel);border:1px solid var(--linea);
+    border-radius:10px;padding:9px 12px;text-align:center;
+  }
+  .hud-item .etiqueta{display:block;font-size:.68rem;text-transform:uppercase;
+    letter-spacing:1px;color:var(--suave);margin-bottom:3px}
+  .hud-item .valor{font-size:1.1rem;font-weight:700;color:#fff}
+  .barra-global{height:10px;background:#061527;border:1px solid var(--linea);
+    border-radius:6px;overflow:hidden;margin-bottom:16px}
+  .barra-global>div{height:100%;width:0;border-radius:5px;
+    background:linear-gradient(90deg,#2b8a5f,#39c07a,#4cc9f0);transition:width .5s ease}
+
+  /* ---------- BLOQUES ---------- */
+  .bloques{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+    gap:10px;margin-bottom:16px}
+  .bloque{
+    background:var(--panel);border:1px solid var(--linea);border-radius:11px;
+    padding:11px;cursor:pointer;transition:.15s;user-select:none;position:relative;
+  }
+  .bloque:hover{border-color:var(--azul);transform:translateY(-2px)}
+  .bloque.sel{border-color:var(--azul);background:var(--panel2);
+    box-shadow:0 0 0 2px rgba(76,201,240,.35)}
+  .bloque-nombre{font-size:.78rem;font-weight:700;line-height:1.25;min-height:32px}
+  .bloque-votos{font-size:.72rem;color:var(--suave);margin-top:4px}
+  .barra{height:8px;background:#061527;border-radius:4px;overflow:hidden;margin-top:7px}
+  .barra>div{height:100%;border-radius:4px;
+    background:linear-gradient(90deg,#2b8a5f,#39c07a);transition:width .4s}
+  .bloque-pct{font-size:.68rem;color:var(--verde);margin-top:5px;font-weight:700}
+  .bloque.prot{border-color:var(--amarillo)}
+  .bloque.prot::after{content:"🛡";position:absolute;top:6px;right:8px;font-size:.8rem}
+
+  /* ---------- ACCIONES ---------- */
+  .acciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:10px;margin-bottom:16px}
+  .accion{display:flex;flex-direction:column;gap:3px;text-align:left;padding:11px 13px}
+  .accion-nombre{font-size:.85rem;font-weight:700}
+  .accion-costo{font-size:.68rem;color:var(--azul);font-weight:700;letter-spacing:1px}
+  .accion-desc{font-size:.7rem;color:var(--suave);line-height:1.3;font-weight:400}
+
+  /* ---------- LOG ---------- */
+  .log{
+    background:#061527;border:1px solid var(--linea);border-radius:11px;
+    padding:10px 13px;height:120px;overflow-y:auto;font-size:.79rem;
+    line-height:1.45;color:var(--suave);margin-bottom:16px;
+  }
+  .log p{padding:2px 0}
+  .log p:last-child{color:var(--texto)}
+
+  /* ---------- DISCURSO ---------- */
+  .frases{display:grid;gap:9px;margin-bottom:16px}
+  .frase{
+    background:var(--panel);border:1px solid var(--linea);border-radius:10px;
+    padding:12px 14px;cursor:pointer;font-size:.85rem;line-height:1.4;
+    transition:.15s;display:flex;align-items:center;gap:11px;
+  }
+  .frase:hover{border-color:var(--azul)}
+  .frase.sel{border-color:var(--verde);background:#0f3a2c}
+  .frase .check{
+    width:20px;height:20px;flex:none;border-radius:5px;border:2px solid var(--linea);
+    display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#071a2f;
+  }
+  .frase.sel .check{background:var(--verde);border-color:var(--verde)}
+
+  /* ---------- VOTACIÓN ---------- */
+  .instruccion{font-size:.9rem;text-align:center;margin-bottom:20px!important}
+  .pista{
+    position:relative;height:42px;background:#061527;border:1px solid var(--linea);
+    border-radius:9px;overflow:hidden;margin-bottom:22px;
+  }
+  .zona-buena{position:absolute;top:0;bottom:0;left:41%;width:18%;
+    background:rgba(57,192,122,.28);border-left:1px solid var(--verde);border-right:1px solid var(--verde)}
+  .zona-perfecta{position:absolute;top:0;bottom:0;left:47%;width:6%;
+    background:rgba(57,192,122,.55)}
+  .marcador-sync{position:absolute;top:0;bottom:0;width:4px;left:0;
+    background:#fff;transform:translateX(-50%);box-shadow:0 0 10px #fff;border-radius:2px}
+
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(13px,1fr));
+    gap:3px;margin:6px 0 20px}
+  .celda{aspect-ratio:1;border-radius:2px;background:#0d2740;transition:background .15s}
+  .celda.verde{background:var(--verde)}
+  .celda.rojo{background:var(--rojo)}
+  .celda.amarillo{background:var(--amarillo)}
+
+  .marcador-final{display:flex;gap:10px;margin-bottom:18px}
+  .marcador-item{flex:1;text-align:center;padding:12px 6px;border-radius:10px;
+    background:#061527;border:1px solid var(--linea)}
+  .marcador-item span{display:block;font-size:1.7rem;font-weight:800;line-height:1}
+  .marcador-item small{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--suave)}
+  .marcador-item.verde span{color:var(--verde)}
+  .marcador-item.rojo span{color:var(--rojo)}
+  .marcador-item.amarillo span{color:var(--amarillo)}
+
+  .veredicto{background:var(--panel2);border:1px solid var(--linea);border-radius:11px;
+    padding:16px;margin-bottom:16px;font-size:.88rem;line-height:1.6;color:#c9dceb}
+  .veredicto h3{font-size:1.15rem;margin-bottom:8px;letter-spacing:1px}
+  .veredicto .oro{color:#f2c94c}
+  .veredicto ul{list-style:none;margin-top:10px;font-size:.8rem;color:var(--suave)}
+  .veredicto li{padding:2px 0}
+
+  /* ---------- TARJETA PARA EXPORTAR IMAGEN ---------- */
+  #tarjeta-resultado {
+    width: 100%;
+    max-width: 480px;
+    margin: 20px auto;
+    background: linear-gradient(160deg, #0e2b4a 0%, #071a2f 100%);
+    border: 3px solid #4cc9f0;
+    border-radius: 16px;
+    padding: 30px 20px;
+    text-align: center;
+    color: white;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .tr-icono {
+    width: 70px; height: 70px; background-color: #CF142B; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 15px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .tr-icono::before { content: "★"; color: #FFF; font-size: 40px; line-height: 1; }
+  .tr-titulo-juego { font-size: 1.4rem; letter-spacing: 2px; font-weight: 800; margin-bottom: 5px; }
+  .tr-sub { font-size: 0.8rem; color: #8fb3cc; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+  .tr-veredicto { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: #f2c94c; }
+  .tr-votos { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+  .tr-voto-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 15px; }
+  .tr-voto-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+  .tr-voto-lbl { font-size: 0.65rem; text-transform: uppercase; color: #8fb3cc; margin-top: 5px; }
+  .tr-hashtag { font-size: 1.1rem; font-weight: bold; color: #4cc9f0; margin-bottom: 20px; padding: 10px; background: rgba(76,201,240,0.1); border-radius: 8px; }
+  .tr-creditos { font-size: 0.7rem; color: #8fb3cc; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+  /* ---------- FOOTER CONSTANTE ---------- */
+  footer {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: #0a1f36; border-top: 1px solid var(--linea);
+    padding: 12px 10px; text-align: center; font-size: 0.8rem;
+    color: var(--suave); z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    letter-spacing: 0.5px;
+  }
+  footer strong { color: #fff; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="bandera"></div>
+    <div>
+      <h1>LA DIGNIDAD VOTA</h1>
+      <p class="sub">La denuncia cubana del bloqueo ante la ONU</p>
+    </div>
+    <button class="btn-tutorial" onclick="mostrarPantalla('tutorial')">📖 Tutorial</button>
+  </header>
+
+  <!-- ============ PANTALLA TUTORIAL ============ -->
+  <section id="pantalla-tutorial" class="pantalla">
+    <div class="panel">
+      <h2>CÓMO JUGAR</h2>
+      <p>Bienvenido a <strong>La Dignidad Vota</strong>. Encarnas al canciller cubano en la Asamblea General de la ONU. Tu misión es lograr una mayoría histórica para condenar el bloqueo económico de EE. UU.</p>
+      
+      <h3 style="color:var(--azul); font-size:0.95rem; margin:15px 0 8px;">1. Fase de Cabildeo</h3>
+      <p>Tienes 6 rondas y 5 Puntos de Acción Diplomática (PAD) por ronda. Selecciona un bloque regional en el mapa y utiliza tus acciones:</p>
+      <ul class="reglas">
+        <li><strong>Reunión Bilateral (2 PAD):</strong> Aumenta el apoyo de un bloque moderadamente.</li>
+        <li><strong>Discurso Regional (4 PAD):</strong> Gran aumento de apoyo, pero puede fallar (75% de éxito).</li>
+        <li><strong>Contrapropaganda (3 PAD):</strong> Aumenta el apoyo y blinda al bloque contra la presión de EE. UU. por esa ronda.</li>
+      </ul>
+      <p>⚠️ <em>Cuidado:</em> al final de cada ronda, EE. UU. presionará a los bloques con más votos, reduciendo su apoyo.</p>
+
+      <h3 style="color:var(--azul); font-size:0.95rem; margin:15px 0 8px;">2. Discurso Final</h3>
+      <p>Elige 3 frases de las 6 disponibles. Las que citan datos históricos, daños humanos o derecho internacional otorgan más puntos de impacto. Evita las frases débiles o agresivas.</p>
+
+      <h3 style="color:var(--azul); font-size:0.95rem; margin:15px 0 8px;">3. La Votación</h3>
+      <p>Llegó el momento. Una barra de sincronización se moverá de izquierda a derecha. Pulsa <strong>VOTAR</strong> justo en el centro (zona verde) para lograr un voto perfecto y sumar votos extra. ¡El mundo observa!</p>
+      
+      <button class="btn primario" style="margin-top:20px;" onclick="mostrarPantalla('inicio')">ENTENDIDO, VOLVER</button>
+    </div>
+  </section>
+
+  <!-- ============ INICIO ============ -->
+  <section id="pantalla-inicio" class="pantalla activa">
+    <div class="panel">
+      <h2>MISIÓN DIPLOMÁTICA</h2>
+      <p>Encarnas al Ministro de Relaciones Exteriores de Cuba. Tu tarea es construir una <strong>mayoría aplastante</strong> en la Asamblea General de la ONU para exigir el fin del bloqueo.</p>
+      <p>Dispones de <strong>6 rondas de cabildeo</strong>, un <strong>discurso</strong> y un <strong>voto final</strong> que quedará en la historia.</p>
+      <button class="btn primario" onclick="iniciarJuego()">COMENZAR LA MISIÓN</button>
+    </div>
+  </section>
+
+  <!-- ============ CABILDEO ============ -->
+  <section id="pantalla-cabildeo" class="pantalla">
+    <div class="hud">
+      <div class="hud-item"><span class="etiqueta">Ronda</span><span class="valor" id="hud-ronda">1 / 6</span></div>
+      <div class="hud-item"><span class="etiqueta">Acciones</span><span class="valor" id="hud-pad">5</span></div>
+      <div class="hud-item"><span class="etiqueta">Votos</span><span class="valor" id="hud-votos">0 / 193</span></div>
+    </div>
+    <div class="barra-global"><div id="barra-votos"></div></div>
+
+    <div class="bloques" id="bloques"></div>
+    <div class="acciones" id="acciones"></div>
+    <div class="log" id="log"></div>
+
+    <button class="btn primario" id="btn-cerrar" onclick="cerrarRonda()">CERRAR RONDA DE CABILDEO →</button>
+  </section>
+
+  <!-- ============ DISCURSO ============ -->
+  <section id="pantalla-discurso" class="pantalla">
+    <div class="panel">
+      <h2>DISCURSO ANTE LA ASAMBLEA</h2>
+      <p>Selecciona <strong>3 frases</strong> para tu intervención. Las que citan datos y principios del derecho internacional son las más contundentes.</p>
+      <div class="frases" id="frases"></div>
+      <p style="font-size:.8rem;color:var(--suave);margin-bottom:14px">
+        Seleccionadas: <strong id="contador-frases">0 / 3</strong>
+      </p>
+      <button class="btn primario" id="btn-pronunciar" disabled onclick="pronunciar()">
+        PRONUNCIAR EL DISCURSO →
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ VOTACIÓN ============ -->
+  <section id="pantalla-votacion" class="pantalla">
+    <div class="panel">
+      <h2>SALA DE LA ASAMBLEA GENERAL</h2>
+
+      <div id="fase-sync">
+        <p class="instruccion">Es el momento del voto.<br>Pulsa <strong>VOTAR</strong> cuando el marcador esté en la zona verde.</p>
+        <div class="pista">
+          <div class="zona-buena"></div>
+          <div class="zona-perfecta"></div>
+          <div class="marcador-sync" id="marcador-sync"></div>
+        </div>
+        <button class="btn primario" id="btn-votar" onclick="detenerSync()">VOTAR</button>
+      </div>
+
+      <div id="fase-resultado" style="display:none">
+        <!-- RESTAURADO: Cuadrícula de votos -->
+        <div class="rejilla" id="rejilla-votos"></div>
+        
+        <div class="marcador-final">
+          <div class="marcador-item verde"><span id="res-favor">0</span><small>A favor</small></div>
+          <div class="marcador-item rojo"><span id="res-contra">0</span><small>En contra</small></div>
+          <div class="marcador-item amarillo"><span id="res-abst">0</span><small>Abstención</small></div>
+        </div>
+
+        <div class="veredicto" id="veredicto"></div>
+
+        <!-- TARJETA DISEÑADA PARA EXPORTAR -->
+        <div id="tarjeta-resultado">
+          <div class="tr-icono"></div>
+          <div class="tr-titulo-juego">LA DIGNIDAD VOTA</div>
+          <div class="tr-sub">Simulador Diplomático ONU</div>
+          
+          <div class="tr-veredicto" id="tr-veredicto">VICTORIA HISTÓRICA</div>
+          
+          <div class="tr-votos">
+            <div class="tr-voto-item">
+              <div class="tr-voto-num" style="color:var(--verde)" id="tr-favor">0</div>
+              <div class="tr-voto-lbl">A favor</div>
+            </div>
+            <div class="tr-voto-item">
+              <div class="tr-voto-num" style="color:var(--rojo)" id="tr-contra">0</div>
+              <div class="tr-voto-lbl">En contra</div>
+            </div>
+            <div class="tr-voto-item">
+              <div class="tr-voto-num" style="color:var(--amarillo)" id="tr-abst">0</div>
+              <div class="tr-voto-lbl">Abstención</div>
+            </div>
+          </div>
+          
+          <div class="tr-hashtag">#CubaNoEsUnaAmenaza</div>
+          
+          <div class="tr-creditos">Creado por JaimeDQVA y DiegoMaslani</div>
+        </div>
+
+        <button class="btn primario descarga" onclick="descargarImagen()">📸 Descargar Resultado (PNG)</button>
+        <button class="btn primario" style="margin-top:10px;" onclick="reiniciar()">VOLVER A INTENTARLO</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER CONSTANTE -->
+<footer>
+  Creado por <strong>JaimeDQVA</strong> y <strong>DiegoMaslani</strong>
+</footer>
+
+<!-- AUDIO DE APLAUSOS -->
+<audio id="audio-aplausos" src="https://actions.google.com/sounds/v1/human/applause.ogg" preload="auto"></audio>
+
+<script>
+/* =========================================================
+   ESTADO DEL JUEGO
+   ========================================================= */
+const RONDAS_MAX = 6;
+const PAD_MAX    = 5;
+const TOTAL_ONU  = 193;
+
+const BLOQUES_BASE = [
+  { id:'latam',  nombre:'América Latina y el Caribe', votos:33, apoyo:85, cap:98, afinidad:1.15 },
+  { id:'ue',     nombre:'Unión Europea y aliados',    votos:27, apoyo:75, cap:98, afinidad:0.95 },
+  { id:'africa', nombre:'África',                     votos:54, apoyo:80, cap:98, afinidad:1.10 },
+  { id:'asia',   nombre:'Asia-Pacífico',              votos:35, apoyo:70, cap:98, afinidad:1.00 },
+  { id:'otros',  nombre:'Otras delegaciones',         votos:42, apoyo:55, cap:85, afinidad:0.90 }
+];
+
+const FRASES = [
+  { t:'El bloqueo ha causado pérdidas superiores a los 170 000 millones de dólares en más de seis décadas.', v:15 },
+  { t:'El bloqueo viola el derecho internacional y los principios de la Carta de las Naciones Unidas.',        v:15 },
+  { t:'El bloqueo castiga a niños, ancianos y enfermos: niega alimentos, medicinas y combustible.',            v:15 },
+  { t:'Durante más de treinta años, esta Asamblea ha rechazado el bloqueo con mayoría abrumadora.',           v:12 },
+  { t:'Cuba extiende su mano de amistad y su cooperación médica a los pueblos del mundo.',                     v:8  },
+  { t:'Apelamos a la conciencia de esta Asamblea y a la memoria de nuestros pueblos.',                        v:6  },
+  { t:'Exigimos sanciones inmediatas y unilaterales contra Estados Unidos.',                                  v:-8 },
+  { t:'A decir verdad, el bloqueo no ha afectado tanto a nuestra economía.',                                  v:-12 }
+];
+
+const state = {
+  ronda: 1,
+  pad: PAD_MAX,
+  bloques: [],
+  seleccion: null,
+  log: [],
+  frasesDisponibles: [],
+  frasesElegidas: [],
+  impacto: 0
+};
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+function mostrarPantalla(id){
+  document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+  document.getElementById('pantalla-' + id).classList.add('activa');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function votosProyectados(){
+  return state.bloques.reduce((s,b) => s + Math.round(b.votos * b.apoyo / 100), 0);
+}
+
+function subirApoyo(bloque, cantidad){
+  bloque.apoyo = Math.min(bloque.cap, bloque.apoyo + cantidad);
+}
+
+function log(msg){
+  state.log.push(msg);
+  const el = document.getElementById('log');
+  el.innerHTML = state.log.map(m => '<p>' + m + '</p>').join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+function iniciarJuego(){
+  state.ronda = 1;
+  state.pad = PAD_MAX;
+  state.seleccion = null;
+  state.log = [];
+  state.frasesElegidas = [];
+  state.impacto = 0;
+  state.bloques = BLOQUES_BASE.map(b => ({ ...b, protegido:false }));
+
+  mostrarPantalla('cabildeo');
+  log('🕊 Comienza la Asamblea General. Cuba presenta su proyecto de resolución.');
+  log('👉 Selecciona un bloque y utiliza tus acciones diplomáticas.');
+  renderCabildeo();
+}
+
+/* =========================================================
+   FASE 1 — CABILDEO
+   ========================================================= */
+function renderCabildeo(){
+  renderBloques();
+  renderAcciones();
+  actualizarHUD();
+}
+
+function renderBloques(){
+  const cont = document.getElementById('bloques');
+  cont.innerHTML = '';
+  state.bloques.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'bloque'
+      + (state.seleccion === b.id ? ' sel' : '')
+      + (b.protegido ? ' prot' : '');
+    div.onclick = () => {
+      state.seleccion = (state.seleccion === b.id) ? null : b.id;
+      renderCabildeo();
+    };
+    const proy = Math.round(b.votos * b.apoyo / 100);
+    div.innerHTML =
+      '<div class="bloque-nombre">' + b.nombre + '</div>' +
+      '<div class="bloque-votos">' + proy + ' / ' + b.votos + ' votos</div>' +
+      '<div class="barra"><div style="width:' + b.apoyo + '%"></div></div>' +
+      '<div class="bloque-pct">' + Math.round(b.apoyo) + '% de apoyo</div>';
+    cont.appendChild(div);
+  });
+}
+
+function renderAcciones(){
+  const cont = document.getElementById('acciones');
+  cont.innerHTML = '';
+  const defs = [
+    { id:'bilateral', nombre:'Reunión bilateral', costo:2, desc:'+12 de apoyo al bloque (× afinidad)' },
+    { id:'regional',  nombre:'Discurso regional', costo:4, desc:'+22 de apoyo (75 % de éxito)' },
+    { id:'contra',    nombre:'Contrapropaganda',  costo:3, desc:'+9 de apoyo y blinda el bloque esta ronda' }
+  ];
+  defs.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'btn accion';
+    btn.disabled = (state.pad < d.costo) || !state.seleccion;
+    btn.innerHTML =
+      '<span class="accion-nombre">' + d.nombre + '</span>' +
+      '<span class="accion-costo">' + d.costo + ' ACCIONES</span>' +
+      '<span class="accion-desc">' + d.desc + '</span>';
+    btn.onclick = () => ejecutarAccion(d.id);
+    cont.appendChild(btn);
+  });
+}
+
+function ejecutarAccion(tipo){
+  const b = state.bloques.find(x => x.id === state.seleccion);
+  if (!b) return;
+
+  if (tipo === 'bilateral'){
+    if (state.pad < 2) return;
+    state.pad -= 2;
+    const g = Math.round(12 * b.afinidad);
+    subirApoyo(b, g);
+    log('🤝 Reunión bilateral con ' + b.nombre + ': +' + g + ' de apoyo.');
+  }
+  else if (tipo === 'regional'){
+    if (state.pad < 4) return;
+    state.pad -= 4;
+    const exito = Math.random() < 0.75;
+    const g = exito ? 22 : 6;
+    subirApoyo(b, g);
+    log(exito
+      ? '🎙 Discurso regional ante ' + b.nombre + ': ovación y +' + g + ' de apoyo.'
+      : '🎙 Discurso regional ante ' + b.nombre + ': tibia recepción, solo +' + g + ' de apoyo.');
+  }
+  else if (tipo === 'contra'){
+    if (state.pad < 3) return;
+    state.pad -= 3;
+    subirApoyo(b, 9);
+    b.protegido = true;
+    log('🛡 Contrapropaganda en ' + b.nombre + ': +9 de apoyo y bloque blindado esta ronda.');
+  }
+
+  renderCabildeo();
+}
+
+function actualizarHUD(){
+  document.getElementById('hud-ronda').textContent = state.ronda + ' / ' + RONDAS_MAX;
+  document.getElementById('hud-pad').textContent = state.pad;
+  const proy = votosProyectados();
+  document.getElementById('hud-votos').textContent = proy + ' / ' + TOTAL_ONU;
+  document.getElementById('barra-votos').style.width = (proy / TOTAL_ONU * 100) + '%';
+}
+
+/* ---------- Presión de EE. UU. y cierre de ronda ---------- */
+function cerrarRonda(){
+  const candidatos = state.bloques.filter(b => !b.protegido);
+  const elegidos = [];
+  const pool = candidatos.slice();
+  
+  for (let k = 0; k < Math.min(2, pool.length); k++){
+    const pesos = pool.map(b => b.votos * b.apoyo / 100);
+    const total = pesos.reduce((a, c) => a + c, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (let i = 0; i < pool.length; i++){
+      r -= pesos[i];
+      if (r <= 0){ idx = i; break; }
+    }
+    elegidos.push(pool.splice(idx, 1)[0]);
+  }
+
+  elegidos.forEach(b => {
+    const danio = 5 + Math.floor(Math.random() * 5);
+    b.apoyo = Math.max(20, b.apoyo - danio);
+    log('🇺🇸 Presión de EE. UU. sobre ' + b.nombre + ': −' + danio + ' de apoyo.');
+  });
+
+  if (elegidos.length === 0){
+    log('🛡 Todos los bloques estaban blindados: la presión no tuvo efecto.');
+  }
+
+  state.bloques.forEach(b => b.protegido = false);
+
+  if (state.ronda >= RONDAS_MAX){
+    setTimeout(irADiscurso, 500);
+    return;
+  }
+
+  state.ronda++;
+  state.pad = PAD_MAX;
+  state.seleccion = null;
+  renderCabildeo();
+  log('──────── Ronda ' + state.ronda + ' ────────');
+}
+
+/* =========================================================
+   FASE 2 — DISCURSO
+   ========================================================= */
+function irADiscurso(){
+  mostrarPantalla('discurso');
+  state.frasesElegidas = [];
+
+  const barajadas = FRASES.slice();
+  for (let i = barajadas.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [barajadas[i], barajadas[j]] = [barajadas[j], barajadas[i]];
+  }
+  state.frasesDisponibles = barajadas.slice(0, 6);
+  renderFrases();
+}
+
+function renderFrases(){
+  const cont = document.getElementById('frases');
+  cont.innerHTML = '';
+  state.frasesDisponibles.forEach((f, i) => {
+    const sel = state.frasesElegidas.includes(i);
+    const div = document.createElement('div');
+    div.className = 'frase' + (sel ? ' sel' : '');
+    div.innerHTML = '<div class="check">' + (sel ? '✓' : '') + '</div><div>' + f.t + '</div>';
+    div.onclick = () => toggleFrase(i);
+    cont.appendChild(div);
+  });
+  document.getElementById('contador-frases').textContent = state.frasesElegidas.length + ' / 3';
+  document.getElementById('btn-pronunciar').disabled = state.frasesElegidas.length !== 3;
+}
+
+function toggleFrase(i){
+  const pos = state.frasesElegidas.indexOf(i);
+  if (pos >= 0) state.frasesElegidas.splice(pos, 1);
+  else if (state.frasesElegidas.length < 3) state.frasesElegidas.push(i);
+  renderFrases();
+}
+
+function pronunciar(){
+  state.impacto = state.frasesElegidas.reduce((s, i) => s + state.frasesDisponibles[i].v, 0);
+  iniciarVotacion();
+}
+
+/* =========================================================
+   FASE 3 — VOTACIÓN
+   ========================================================= */
+let syncRAF = null, syncPos = 0, syncDir = 1, syncT0 = 0, syncActivo = false;
+
+function iniciarVotacion(){
+  mostrarPantalla('votacion');
+  document.getElementById('fase-sync').style.display = 'block';
+  document.getElementById('fase-resultado').style.display = 'none';
+  
+  // RESTAURADO: Limpiamos la rejilla (ya existe en el HTML)
+  document.getElementById('rejilla-votos').innerHTML = '';
+  
+  document.getElementById('veredicto').innerHTML = '';
+  document.getElementById('btn-votar').disabled = false;
+  iniciarSync();
+}
+
+function iniciarSync(){
+  syncActivo = true;
+  syncPos = 0;
+  syncDir = 1;
+  syncT0 = performance.now();
+  const m = document.getElementById('marcador-sync');
+  m.style.left = '0%';
+
+  function loop(t){
+    if (!syncActivo) return;
+    const dt = Math.min((t - syncT0) / 1000, 0.05);
+    syncT0 = t;
+    syncPos += syncDir * 62 * dt;
+    if (syncPos >= 100){ syncPos = 100; syncDir = -1; }
+    if (syncPos <= 0){ syncPos = 0; syncDir = 1; }
+    m.style.left = syncPos + '%';
+    syncRAF = requestAnimationFrame(loop);
+  }
+  syncRAF = requestAnimationFrame(loop);
+}
+
+function detenerSync(){
+  if (!syncActivo) return;
+  syncActivo = false;
+  cancelAnimationFrame(syncRAF);
+  document.getElementById('btn-votar').disabled = true;
+
+  const offset = Math.abs(syncPos - 50);
+  let bonus, texto;
+  if (offset <= 3)       { bonus = 10; texto = '¡VOTO PERFECTO! La sala estalla en aplausos.'; }
+  else if (offset <= 9)  { bonus = 6;  texto = 'Buen voto: la delegación cubana sincroniza con la mayoría.'; }
+  else if (offset <= 16) { bonus = 2;  texto = 'Voto aceptable: se pierde parte del impulso.'; }
+  else                   { bonus = 0;  texto = 'Voto descoordinado: el momento se diluye.'; }
+
+  mostrarResultados(bonus, texto);
+}
+
+function mostrarResultados(bonusSync, texto){
+  document.getElementById('fase-sync').style.display = 'none';
+  document.getElementById('fase-resultado').style.display = 'block';
+
+  const proyectado   = votosProyectados();
+  const bonusImpacto = Math.max(0, Math.round(state.impacto / 3));
+  const favor        = Math.min(191, proyectado + bonusImpacto + bonusSync);
+  const contra       = 2;
+  const abst         = Math.max(0, TOTAL_ONU - favor - contra);
+
+  // Actualizar Tarjeta de Resultados (para exportar)
+  document.getElementById('tr-favor').textContent = favor;
+  document.getElementById('tr-contra').textContent = contra;
+  document.getElementById('tr-abst').textContent = abst;
+
+  let titulo, clase, mensaje, colorTarjeta;
+  if (favor >= 180){
+    titulo = '🏆 VICTORIA HISTÓRICA';
+    mensaje = 'La Asamblea General rechaza el bloqueo con una mayoría abrumadora. El aislamiento de Washington queda retratado ante el mundo entero.';
+    colorTarjeta = '#f2c94c';
+  } else if (favor >= 150){
+    titulo = '✅ VICTORIA AMPLIA';
+    mensaje = 'La resolución es aprobada con un respaldo contundente. La comunidad internacional vuelve a pronunciarse contra el bloqueo.';
+    colorTarjeta = '#39c07a';
+  } else if (favor >= 97){
+    titulo = '🟡 MAYORÍA SIMPLE';
+    mensaje = 'La resolución se aprueba, pero el consenso es menor de lo esperado. Habrá que redoblar el trabajo diplomático el próximo año.';
+    colorTarjeta = '#e8b23a';
+  } else {
+    titulo = '❌ RESOLUCIÓN RECHAZADA';
+    mensaje = 'No se alcanzó la mayoría necesaria. La presión y la falta de cabildeo pasaron factura: habrá que intentarlo de nuevo.';
+    colorTarjeta = '#e05252';
+  }
+
+  const trVer = document.getElementById('tr-veredicto');
+  trVer.textContent = titulo.replace(/[🏆✅🟡❌]\s/g, ''); // Limpiar emojis para la imagen
+  trVer.style.color = colorTarjeta;
+
+  // Texto del veredicto en pantalla
+  document.getElementById('veredicto').innerHTML =
+    '<h3 style="color:' + colorTarjeta + '">' + titulo + '</h3>' +
+    '<p>' + mensaje + '</p>' +
+    '<ul>' +
+      '<li>📊 Votos proyectados por el cabildeo: <strong>' + proyectado + '</strong></li>' +
+      '<li>🎙 Bono por el discurso: <strong>+' + bonusImpacto + '</strong></li>' +
+      '<li>⏱ Bono por el voto final: <strong>+' + bonusSync + '</strong> (' + texto + ')</li>' +
+      '<li>🌍 Resultado: <strong>' + favor + ' a favor · ' + contra + ' en contra · ' + abst + ' abstenciones</strong></li>' +
+    '</ul>';
+
+  // ---- Rejilla de 193 escaños, revelado aleatorio ----
+  const colores = [];
+  for (let i = 0; i < favor;  i++) colores.push('verde');
+  for (let i = 0; i < contra; i++) colores.push('rojo');
+  for (let i = 0; i < abst;   i++) colores.push('amarillo');
+  for (let i = colores.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [colores[i], colores[j]] = [colores[j], colores[i]];
+  }
+
+  const rejilla = document.getElementById('rejilla-votos');
+  rejilla.innerHTML = '';
+  const celdas = [];
+  for (let i = 0; i < TOTAL_ONU; i++){
+    const d = document.createElement('div');
+    d.className = 'celda';
+    rejilla.appendChild(d);
+    celdas.push(d);
+  }
+
+  let idx = 0, cuentaF = 0, cuentaC = 0, cuentaA = 0;
+  const elF = document.getElementById('res-favor');
+  const elC = document.getElementById('res-contra');
+  const elA = document.getElementById('res-abst');
+
+  const timer = setInterval(() => {
+    if (idx >= colores.length){
+      clearInterval(timer);
+      
+      // EFECTO DE APLAUSOS AL FINALIZAR
+      if (favor >= 97) {
+        const audio = document.getElementById('audio-aplausos');
+        if (audio) {
+          audio.volume = 0.6;
+          audio.play().catch(e => console.log('El navegador bloqueó el autoplay del audio.'));
+        }
+      }
+      return;
+    }
+    const c = colores[idx];
+    celdas[idx].classList.add(c);
+    if (c === 'verde')    { cuentaF++; elF.textContent = cuentaF; }
+    if (c === 'rojo')     { cuentaC++; elC.textContent = cuentaC; }
+    if (c === 'amarillo') { cuentaA++; elA.textContent = cuentaA; }
+    idx++;
+  }, 12);
+}
+
+/* =========================================================
+   GENERACIÓN DE IMAGEN PNG
+   ========================================================= */
+function descargarImagen() {
+  const tarjeta = document.getElementById('tarjeta-resultado');
+  
+  // Usamos html2canvas para renderizar el div de la tarjeta
+  html2canvas(tarjeta, {
+    scale: 2, // Mayor resolución
+    backgroundColor: null, // Mantener el degradado
+    useCORS: true
+  }).then(canvas => {
+    // Convertir a PNG y descargar
+    const link = document.createElement('a');
+    link.download = 'Resultado_LaDignidadVota.png';
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }).catch(err => {
+    console.error('Error al generar la imagen:', err);
+    alert('Hubo un error al generar la imagen. Asegúrate de que tu navegador permita las descargas.');
+  });
+}
+
+/* =========================================================
+   REINICIO
+   ========================================================= */
+function reiniciar(){
+  syncActivo = false;
+  if (syncRAF) cancelAnimationFrame(syncRAF);
+  const audio = document.getElementById('audio-aplausos');
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+  mostrarPantalla('inicio');
+}
+
+/* Arranque */
+window.addEventListener('load', () => {
+  document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+  document.getElementById('pantalla-inicio').classList.add('activa');
+});
+</script>
+</body>
+</html>
